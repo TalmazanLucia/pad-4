@@ -46,7 +46,7 @@ def test_get_categories(client, mock_cassandra_session):
         MagicMock(id="5678", name="Women")
     ]
 
-    response = client.get('/categories')
+    response = client.get('/api/categories')
     assert response.status_code == 200
     data = response.get_json()
     assert len(data) == 2
@@ -55,7 +55,7 @@ def test_get_categories(client, mock_cassandra_session):
 
 def test_add_category(client, mock_cassandra_session, mock_cache):
     """Test adding a new category."""
-    response = client.post('/categories', json={"name": "New Category"})
+    response = client.post('/api/categories', json={"name": "New Category"})
     assert response.status_code == 201
     data = response.get_json()
     assert "id" in data
@@ -66,7 +66,7 @@ def test_add_category(client, mock_cassandra_session, mock_cache):
 
 def test_add_category_missing_name(client):
     """Test adding a category without a name."""
-    response = client.post('/categories', json={})
+    response = client.post('/api/categories', json={})
     assert response.status_code == 400
     data = response.get_json()
     assert "error" in data
@@ -81,7 +81,7 @@ def test_get_clothes(client, mock_cassandra_session):
                   description="Casual T-Shirt", is_available=True,
                   category_id="5678", rating=4.5)
     ]
-    response = client.get('/clothes', query_string={"size": "M"})
+    response = client.get('/api/clothes', query_string={"size": "M"})
     assert response.status_code == 200
     data = response.get_json()
     assert len(data["clothes"]) == 1
@@ -103,7 +103,7 @@ def test_add_clothes(client, mock_cassandra_session, mock_cache):
         "is_available": True,
         "rating": 4.0,
     }
-    response = client.post('/clothes', json=payload)
+    response = client.post('/api/clothes', json=payload)
     assert response.status_code == 201
     data = response.get_json()
     assert "id" in data
@@ -127,7 +127,7 @@ def test_get_single_clothes(client, mock_cassandra_session):
         category_id="5678",
         rating=4.5
     )
-    response = client.get('/clothes/1234')
+    response = client.get('/api/clothes/1234')
     assert response.status_code == 200
     data = response.get_json()
     assert data["name"] == "T-Shirt"
@@ -136,7 +136,7 @@ def test_get_single_clothes(client, mock_cassandra_session):
 def test_get_single_clothes_not_found(client, mock_cassandra_session):
     """Test fetching a non-existent clothes item."""
     mock_cassandra_session.execute.return_value.one_or_none.return_value = None
-    response = client.get('/clothes/1234')
+    response = client.get('/api/clothes/1234')
     assert response.status_code == 404
     data = response.get_json()
     assert "error" in data
