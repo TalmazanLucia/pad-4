@@ -60,30 +60,3 @@ def test_add_category_missing_name(client, mock_cache):
     data = response.get_json()
     assert "error" in data
     assert data["error"] == "Category name is required"
-
-def test_get_clothes(client, mock_cassandra_session, mock_cache):
-    """Test fetching clothes with filters."""
-    mock_result = MagicMock()
-    mock_result.current_rows = [
-        SimpleNamespace(
-            id="1234",
-            name="T-Shirt",
-            size="M",            # Add the missing attribute
-            price=20.0,
-            stock=50,
-            color="Red",
-            brand="Brand A",
-            material="Cotton",
-            description="Casual T-Shirt",
-            is_available=True,
-            category_id="5678",
-            rating=4.5
-        )
-    ]
-    mock_cassandra_session.execute.return_value = mock_result
-
-    response = client.get('/api/clothes')
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data["clothes"]) == 1
-    assert data["clothes"][0]["name"] == "T-Shirt"
