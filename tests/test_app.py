@@ -1,6 +1,8 @@
 import pytest
 from unittest.mock import MagicMock
 from app import create_app
+from types import SimpleNamespace
+import uuid
 
 
 @pytest.fixture
@@ -16,19 +18,27 @@ def mock_cassandra_session(monkeypatch):
 
 @pytest.fixture
 def mock_cache(monkeypatch):
-    # Mock cache methods
+    # Create a mock cache object that doesn't hit Redis
     mock_cache = MagicMock()
+    # Ensure cache methods return simple values and don't attempt real connections
+    mock_cache.get.return_value = None
+    mock_cache.delete.return_value = True
+    mock_cache.clear.return_value = True
+
+    # Replace 'app.cache' with this mock
     monkeypatch.setattr('app.cache', mock_cache)
     return mock_cache
 
 
 @pytest.fixture
-def app(mock_cassandra_session):
+def app(mock_cassandra_session, mock_cache):
     """Test application fixture."""
-    # Because `app` now depends on `mock_cassandra_session`,
-    # the monkeypatch is applied before create_app() runs.
     application = create_app()
     application.testing = True
+
+    # If needed, you could switch the cache backend here for testing:
+    # application.config['CACHE_TYPE'] = 'SimpleCache'
+
     return application
 
 
@@ -41,9 +51,10 @@ def client(app):
 
 def test_get_categories(client, mock_cassandra_session):
     """Test fetching all categories."""
+    # Return objects that have attributes, not MagicMocks
     mock_cassandra_session.execute.return_value = [
-        MagicMock(id="1234", name="Men"),
-        MagicMock(id="5678", name="Women")
+        SimpleNamespace(id="1234", name="Men"),
+        SimpleNamespace(id="5678", name="Women")
     ]
 
     response = client.get('/api/categories')
@@ -55,6 +66,7 @@ def test_get_categories(client, mock_cassandra_session):
 
 def test_add_category(client, mock_cassandra_session, mock_cache):
     """Test adding a new category."""
+    # Just ensure this doesn't fail due to Redis or JSON issues
     response = client.post('/api/categories', json={"name": "New Category"})
     assert response.status_code == 201
     data = response.get_json()
@@ -75,12 +87,17 @@ def test_add_category_missing_name(client):
 
 def test_get_clothes(client, mock_cassandra_session):
     """Test fetching clothes with filters."""
-    mock_cassandra_session.execute.return_value.current_rows = [
-        MagicMock(id="1234", name="T-Shirt", size="M", price=20.0, stock=50,
-                  color="Red", brand="Brand A", material="Cotton",
-                  description="Casual T-Shirt", is_available=True,
-                  category_id="5678", rating=4.5)
+    mock_result = MagicMock()
+    mock_result.current_rows = [
+        SimpleNamespace(
+            id="1234", name="T-Shirt", size="M", price=20.0, stock=50,
+            color="Red", brand="Brand A", material="Cotton",
+            description="Casual T-Shirt", is_available=True,
+            category_id="5678", rating=4.5
+        )
     ]
+    mock_cassandra_session.execute.return_value = mock_result
+
     response = client.get('/api/clothes', query_string={"size": "M"})
     assert response.status_code == 200
     data = response.get_json()
@@ -90,8 +107,9 @@ def test_get_clothes(client, mock_cassandra_session):
 
 def test_add_clothes(client, mock_cassandra_session, mock_cache):
     """Test adding a new clothes item."""
+    valid_uuid = str(uuid.uuid4())
     payload = {
-        "category_id": "1234",
+        "category_id": valid_uuid,
         "name": "Jeans",
         "size": "L",
         "price": 40.0,
@@ -113,7 +131,8 @@ def test_add_clothes(client, mock_cassandra_session, mock_cache):
 
 def test_get_single_clothes(client, mock_cassandra_session):
     """Test fetching a single clothes item."""
-    mock_cassandra_session.execute.return_value.one_or_none.return_value = MagicMock(
+    mock_result = MagicMock()
+    mock_result.one_or_none.return_value = SimpleNamespace(
         id="1234",
         name="T-Shirt",
         size="M",
@@ -127,6 +146,8 @@ def test_get_single_clothes(client, mock_cassandra_session):
         category_id="5678",
         rating=4.5
     )
+    mock_cassandra_session.execute.return_value = mock_result
+
     response = client.get('/api/clothes/1234')
     assert response.status_code == 200
     data = response.get_json()
@@ -135,7 +156,10 @@ def test_get_single_clothes(client, mock_cassandra_session):
 
 def test_get_single_clothes_not_found(client, mock_cassandra_session):
     """Test fetching a non-existent clothes item."""
-    mock_cassandra_session.execute.return_value.one_or_none.return_value = None
+    mock_result = MagicMock()
+    mock_result.one_or_none.return_value = None
+    mock_cassandra_session.execute.return_value = mock_result
+
     response = client.get('/api/clothes/1234')
     assert response.status_code == 404
     data = response.get_json()
