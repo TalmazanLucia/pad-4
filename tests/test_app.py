@@ -3,8 +3,7 @@ import pytest
 from unittest.mock import MagicMock
 from app import create_app
 
-
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture
 def mock_cassandra_session(monkeypatch):
     # Mock cluster and session objects
     mock_cluster = MagicMock()
@@ -14,7 +13,6 @@ def mock_cassandra_session(monkeypatch):
     monkeypatch.setattr('app.connect_to_cassandra', lambda: (mock_cluster, mock_session))
     return mock_session
 
-
 @pytest.fixture
 def mock_cache(monkeypatch):
     # Mock cache methods used in the application
@@ -22,14 +20,12 @@ def mock_cache(monkeypatch):
     monkeypatch.setattr('app.cache', mock_cache)
     return mock_cache
 
-
 @pytest.fixture
 def app():
     """Test application fixture."""
     app = create_app()
     app.testing = True
     return app
-
 
 @pytest.fixture
 def client(app):
