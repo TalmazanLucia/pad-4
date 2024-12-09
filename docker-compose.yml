@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: redis
+    networks:
+      - app-network
+
+  cassandra1:
+    image: cassandra:3.11
+    container_name: cassandra1
+    environment:
+      CASSANDRA_CLUSTER_NAME: 'MyCluster'
+      CASSANDRA_LISTEN_ADDRESS: cassandra1
+      CASSANDRA_BROADCAST_ADDRESS: cassandra1
+      CASSANDRA_SEEDS: cassandra1
+    networks:
+      - app-network
+
+#  cassandra2:
+#    image: cassandra:3.11
+#    container_name: cassandra2
+#    environment:
+#      CASSANDRA_CLUSTER_NAME: 'MyCluster'
+#      CASSANDRA_LISTEN_ADDRESS: cassandra2
+#      CASSANDRA_BROADCAST_ADDRESS: cassandra2
+#      CASSANDRA_SEEDS: cassandra1
+#    depends_on:
+#      - cassandra1
+#    networks:
+#      - app-network
+#  cassandra3:
+#    image: cassandra:3.11
+#    container_name: cassandra3
+#    environment:
+#      CASSANDRA_CLUSTER_NAME: 'MyCluster'
+#      CASSANDRA_LISTEN_ADDRESS: cassandra3
+#      CASSANDRA_BROADCAST_ADDRESS: cassandra3
+#      CASSANDRA_SEEDS: cassandra1
+#    depends_on:
+#      - cassandra1
+#    networks:
+#      - app-network
+
+  cassandra-init:
+    image: cassandra:3.11
+    container_name: cassandra-init
+    depends_on:
+      - cassandra1
+    volumes:
+      - ./init-cassandra.cql:/init-cassandra.cql
+    networks:
+      - app-network
+    entrypoint: >
+      /bin/bash -c "
+      until cqlsh cassandra1 -e 'describe keyspaces'; do
+        echo 'Waiting for Cassandra to be ready...';
+        sleep 5;
+      done;
+      echo 'Cassandra is ready, initializing keyspace and tables...';
+      cqlsh cassandra1 -f /init-cassandra.cql;
+      echo 'Initialization complete.';
+      "
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - server
+      - redis
+    networks:
+      - app-network
+
+  server:
+    build:
+      context: ./
+    environment:
+      FLASK_ENV: production
+      CASSANDRA_HOSTS: cassandra1
+    depends_on:
+      - cassandra-init
+      - cassandra1
+#      - cassandra2
+#      - cassandra3
+      - redis
+    ports:
+      - "5500-5510:5500"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

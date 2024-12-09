@@ -1,0 +1,39 @@
+.clothesWrapper {
+  margin-top: 32px;
+  max-width: 600px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 32px;
+}
+
+.clothWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.clothName {
+  font-weight: 700;
+}
+
+.dataRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pagination {
+  margin-top:16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+
+  button {
+    border: 1px solid black;
+    border-radius: 12px;
+    padding: 4px 16px;
+    cursor: pointer;
+    background: unset;
+  }
+}
