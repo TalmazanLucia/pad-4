@@ -3,7 +3,6 @@ import {useEffect, useState} from "react";
 
 const Clothes = ({selectedCategory}) => {
     const [data, setData] = useState([]);
-    const [page, setPage] = useState(1);
 
     const getData = async () => {
         const response = await fetch(selectedCategory
@@ -14,11 +13,10 @@ const Clothes = ({selectedCategory}) => {
 
         setData(json && json.clothes ? json.clothes : [])
     }
-    console.log(data);
 
     useEffect(() => {
         getData();
-    }, [selectedCategory, page]);
+    }, [selectedCategory]);
 
     return (
         <div>
@@ -34,10 +32,6 @@ const Clothes = ({selectedCategory}) => {
                         </div>
                     </div>
                 ))}
-            </div>
-            <div className={cls.pagination}>
-                <button onClick={() => setPage(page - 1)} disabled={page === 1}>Previous page</button>
-                <button onClick={() => setPage(page + 1)}>Next page</button>
             </div>
         </div>
     );

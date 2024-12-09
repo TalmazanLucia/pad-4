@@ -8,7 +8,7 @@ function App() {
 
   return (
     <div className={cls.appWrapper}>
-      <p>Hainele tale</p>
+      <p>All clothes</p>
         <Categories handleSelect={(value) => setSelectedCategory(value)}/>
         <Clothes selectedCategory={selectedCategory}/>
     </div>
