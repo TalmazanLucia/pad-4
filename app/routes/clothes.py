@@ -48,67 +48,28 @@ def get_clothes():
             request.headers.get('Accept', 'application/json')
         ), 400
 
-    # Get limit and offset (page number) from query parameters
-    try:
-        limit = int(filters.get('limit', 10))
-        if limit <= 0:
-            raise ValueError
-    except ValueError:
-        return create_response(
-            {"error": "Invalid limit parameter"},
-            request.headers.get('Accept', 'application/json')
-        ), 400
+    # Execute the query and fetch all matching rows
+    result = session.execute(statement, params)
 
-    try:
-        offset = int(filters.get('offset', 1))  # Default offset (page number) is 1
-        if offset <= 0:
-            raise ValueError
-    except ValueError:
-        return create_response(
-            {"error": "Invalid offset parameter"},
-            request.headers.get('Accept', 'application/json')
-        ), 400
-
-    # Execute the query and fetch data up to the desired offset
-    execution_options = {'fetch_size': limit}
-    result = session.execute(statement, params, **execution_options)
-
-    # Iterate through pages to reach the desired offset
-    current_page = 1
-    while current_page < offset and result.has_more_pages:
-        result = result.next_page()
-        current_page += 1
-
-    # Check if we've reached the desired offset
-    if current_page != offset:
-        return create_response(
-            {"error": "Offset out of range"},
-            request.headers.get('Accept', 'application/json')
-        ), 404
-
-    # Fetch rows on the desired offset (page)
-    clothes = [{
-        "id": str(row.id),
-        "name": row.name,
-        "size": row.size,
-        "price": row.price,
-        "stock": row.stock,
-        "color": row.color,
-        "brand": row.brand,
-        "material": row.material,
-        "description": row.description,
-        "is_available": row.is_available,
-        "category_id": str(row.category_id),
-        "rating": row.rating,
-    } for row in result.current_rows]
-
-    # Determine if there is a next page
-    has_next_page = result.has_more_pages
+    clothes = []
+    for row in result:
+        clothes.append({
+            "id": str(row.id),
+            "name": row.name,
+            "size": row.size,
+            "price": row.price,
+            "stock": row.stock,
+            "color": row.color,
+            "brand": row.brand,
+            "material": row.material,
+            "description": row.description,
+            "is_available": row.is_available,
+            "category_id": str(row.category_id),
+            "rating": row.rating,
+        })
 
     response_data = {
-        "clothes": clothes,
-        "offset": offset,
-        "has_next_page": has_next_page
+        "clothes": clothes
     }
 
     return create_response(
