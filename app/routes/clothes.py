@@ -10,72 +10,36 @@ clothes_bp = Blueprint('clothes', __name__)
 def get_clothes():
     filters = request.args
     query = "SELECT * FROM clothes"
-    params = []
-    conditions = []
+    params = [] # lista de filtre in cazul in care au fost cerute
+    conditions = [] # la fel ca params doar ca ele se formateaza diferit
 
     # Filtering conditions
     if 'category_id' in filters:
-        try:
-            conditions.append("category_id = ?")
-            params.append(uuid.UUID(filters['category_id']))
-        except ValueError:
-            return create_response(
-                {"error": "Invalid category_id UUID"},
-                request.headers.get('Accept', 'application/json')
-            ), 400
-
-    if 'size' in filters:
-        conditions.append("size = ?")
-        params.append(filters['size'])
-
-    if 'is_available' in filters:
-        conditions.append("is_available = ?")
-        params.append(filters['is_available'].lower() == 'true')
+        conditions.append("category_id = %s")
+        params.append(uuid.UUID(filters['category_id']))
 
     # Apply conditions to query
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
-    # Add ALLOW FILTERING if necessary
     query += " ALLOW FILTERING"
 
-    # Prepare the statement
-    try:
-        statement = session.prepare(query)
-    except ValueError:
-        return create_response(
-            {"error": f"Invalid query syntax"},
-            request.headers.get('Accept', 'application/json')
-        ), 400
-
-    # Execute the query and fetch all matching rows
-    result = session.execute(statement, params)
-
-    clothes = []
-    for row in result:
-        clothes.append({
-            "id": str(row.id),
-            "name": row.name,
-            "size": row.size,
-            "price": row.price,
-            "stock": row.stock,
-            "color": row.color,
-            "brand": row.brand,
-            "material": row.material,
-            "description": row.description,
-            "is_available": row.is_available,
-            "category_id": str(row.category_id),
-            "rating": row.rating,
-        })
-
-    response_data = {
-        "clothes": clothes
-    }
-
-    return create_response(
-        response_data,
-        request.headers.get('Accept', 'application/json')
-    ), 200
+    rows = session.execute(query, params)
+    clothes = [{
+        "id": str(row.id),
+        "name": row.name,
+        "size": row.size,
+        "price": row.price,
+        "stock": row.stock,
+        "color": row.color,
+        "brand": row.brand,
+        "material": row.material,
+        "description": row.description,
+        "is_available": row.is_available,
+        "category_id": str(row.category_id),
+        "rating": row.rating,
+    } for row in rows]
+    return create_response(clothes, request.headers.get('Accept', 'application/json')), 200
 
 
 @clothes_bp.route('', methods=['POST'])
