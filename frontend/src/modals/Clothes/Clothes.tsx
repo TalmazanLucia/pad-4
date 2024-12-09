@@ -11,7 +11,7 @@ const Clothes = ({selectedCategory}) => {
         );
         const json = await response.json();
 
-        setData(json && json.clothes ? json.clothes : [])
+        setData(json ? json : [])
     }
 
     useEffect(() => {
