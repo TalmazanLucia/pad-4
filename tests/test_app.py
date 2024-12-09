@@ -1,7 +1,7 @@
-# test_app.py
 import pytest
 from unittest.mock import MagicMock
 from app import create_app
+
 
 @pytest.fixture
 def mock_cassandra_session(monkeypatch):
@@ -13,26 +13,32 @@ def mock_cassandra_session(monkeypatch):
     monkeypatch.setattr('app.connect_to_cassandra', lambda: (mock_cluster, mock_session))
     return mock_session
 
+
 @pytest.fixture
 def mock_cache(monkeypatch):
-    # Mock cache methods used in the application
+    # Mock cache methods
     mock_cache = MagicMock()
     monkeypatch.setattr('app.cache', mock_cache)
     return mock_cache
 
+
 @pytest.fixture
-def app():
+def app(mock_cassandra_session):
     """Test application fixture."""
-    app = create_app()
-    app.testing = True
-    return app
+    # Because `app` now depends on `mock_cassandra_session`,
+    # the monkeypatch is applied before create_app() runs.
+    application = create_app()
+    application.testing = True
+    return application
+
 
 @pytest.fixture
 def client(app):
     return app.test_client()
 
 
-### Test Categories API
+### Tests
+
 def test_get_categories(client, mock_cassandra_session):
     """Test fetching all categories."""
     mock_cassandra_session.execute.return_value = [
@@ -67,17 +73,14 @@ def test_add_category_missing_name(client):
     assert data["error"] == "Category name is required"
 
 
-### Test Clothes API
 def test_get_clothes(client, mock_cassandra_session):
     """Test fetching clothes with filters."""
-    # Mock the return value for the Cassandra query
     mock_cassandra_session.execute.return_value.current_rows = [
         MagicMock(id="1234", name="T-Shirt", size="M", price=20.0, stock=50,
                   color="Red", brand="Brand A", material="Cotton",
                   description="Casual T-Shirt", is_available=True,
                   category_id="5678", rating=4.5)
     ]
-
     response = client.get('/clothes', query_string={"size": "M"})
     assert response.status_code == 200
     data = response.get_json()
