@@ -79,7 +79,7 @@ def test_get_clothes(client, mock_cassandra_session, mock_cache):
     mock_result = MagicMock()
     mock_result.current_rows = [
         SimpleNamespace(
-            id="1234", name="T-Shirt", size="M", price=20.0, stock=50,
+            id="1234", name="T-Shirt", price=20.0, stock=50,
             color="Red", brand="Brand A", material="Cotton",
             description="Casual T-Shirt", is_available=True,
             category_id="5678", rating=4.5
