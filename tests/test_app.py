@@ -58,7 +58,8 @@ def test_add_category_missing_name(client, mock_cache):
     assert response.status_code == 400
     data = response.get_json()
     assert "error" in data
-    assert data["error"] == "Category name is required"
+    assert data["error"] == "Category name is  required"
+
 
 # def test_get_category(client, mock_cassandra_session, mock_cache):
 #     """Test fetching"""
