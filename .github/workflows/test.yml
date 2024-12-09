@@ -21,7 +21,7 @@ jobs:
           - 6379:6379
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Code # se duce in codul nou modificat
         uses: actions/checkout@v3
 
       - name: Set up Python

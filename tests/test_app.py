@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import MagicMock
 from app import create_app
 from types import SimpleNamespace
-import uuid
 
 @pytest.fixture
 def mock_cassandra_session(monkeypatch):
@@ -60,3 +59,6 @@ def test_add_category_missing_name(client, mock_cache):
     data = response.get_json()
     assert "error" in data
     assert data["error"] == "Category name is required"
+
+# def test_get_category(client, mock_cassandra_session, mock_cache):
+#     """Test fetching"""
